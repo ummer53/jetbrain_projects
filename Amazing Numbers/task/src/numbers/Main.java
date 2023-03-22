@@ -2,117 +2,152 @@ package numbers;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Scanner;
+import java.util.*;
 
 public class Main {
     private static boolean status = true;
     private static final Scanner scanner = new Scanner(System.in);
-    private static  String[] properties = {"EVEN", "ODD", "BUZZ", "DUCK", "PALINDROMIC", "GAPFUL", "SPY", "SQUARE", "SUNNY"};
-    private static  String[] methods = {"isEven", "isOdd", "isBuzz", "isDuck", "isPalindromic", "isGapful", "isSpy", "isSquare", "isSquare"};
+    private static  String[] properties = {"EVEN", "ODD", "BUZZ", "DUCK", "PALINDROMIC", "GAPFUL", "SPY", "SQUARE", "SUNNY", "JUMPING", "HAPPY", "SAD"};
+    private static List<String>  props;
+    private static  String[] methods = {"isEven", "isOdd", "isBuzz", "isDuck", "isPalindromic", "isGapful", "isSpy", "isSquare", "isSquare", "isJumping", "isHappy", "isSad"};
+    private static List<Method> mets;
+    private static Map<String, String> exclusive;
+
 
 
 
     public static void main(String[] args) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-
+        /*
+        Map to take care of Mutually Exclusive properties
+         */
         printWelcomeAndInstructions();
+        exclusive=new HashMap<>();
+        exclusive=new HashMap<>();
+        for (String prop : properties) {
+            exclusive.put(prop, ("-" + prop));
+        }
+        exclusive.put("HAPPY", "SAD");
+        exclusive.put("ODD", "EVEN");
+        exclusive.put("SUNNY", "SQUARE");
+        exclusive.put("DUCK", "SPY");
+        exclusive.put("-HAPPY", "-SAD");
+        exclusive.put("-ODD", "-EVEN");
+       // exclusive.put("-SUNNY", "-SQUARE");
+      //  exclusive.put("-DUCK", "-SPY");
+//        exclusive.put("isEven", "isOdd");
+//        exclusive.put("isSunny", "isSquare");
+//        exclusive.put("isDuck", "isSpy");
+
+        props = new ArrayList<>();
+        for (String p : properties) {
+            props.add(p);
+        }
+
+        Class<?>[] parameters = new Class<?>[]{String.class};
+
+/*
+while loop is set to let the user run the program as many times as user wants
+status true means loop will run one more time
+status false means loop will terminate
+once user enters the loop will terminate only after entering 0 as first input
+ */
 
         while (status) {
+            boolean negate = false;   // to check whether - is written in with property name
+            String methodName = "";   // to extract method name from property
             System.out.print("Enter a request: ");
-            String[] request = scanner.nextLine().split(" ");
-
+            String[] request = scanner.nextLine().split(" ");     // take request input from user and convert it into array
+/*
+ First step is to check for valid input:
+ which contains different procedures for different length of input request array
+ */
             if (validateInput(request)) {
-                if (request.length == 1) {
+                if (request.length == 1) {      // if only  1 no. is entered all properties  of that number will be displayed as true of false
                     printPropertiesNumber(request[0]);
                 } else if (request.length == 2) {
                     for (int i = 0; i < Long.parseLong(request[1]); i++) {
                         printPropertiesNumberOneLine(i + Long.parseLong(request[0]));
                     }
                 } else if (request.length == 3) {
-                    Class<?>[] parameters = new Class<?>[]{String.class};
-                    String methodName = "is" + request[2].substring(0, 1).toUpperCase() + request[2].substring(1).toLowerCase();
+                   // Class<?>[] parameters = new Class<?>[]{String.class};
+                    if (request[2].charAt(0) == '-') {
+                        negate = true;
+                        methodName = "is" + request[2].substring(1, 2).toUpperCase() + request[2].substring(2).toLowerCase();
+                    }
+                    else {
+                        methodName = "is" + request[2].substring(0, 1).toUpperCase() + request[2].substring(1).toLowerCase();
+                    }
                     Method method = Main.class.getMethod(methodName, parameters);
-                    numbersWithThisProperty(method, request);
-                } else {
-                    Class<?>[] parameters = new Class<?>[]{String.class};
-                    String methodName1 = "is" + request[2].substring(0, 1).toUpperCase() + request[2].substring(1).toLowerCase();
-                    String methodName2 = "is" + request[3].substring(0, 1).toUpperCase() + request[3].substring(1).toLowerCase();
-                    Method method1 = Main.class.getMethod(methodName1, parameters);
-                    Method method2 = Main.class.getMethod(methodName2, parameters);
-                    if (checkProperties(methodName1,methodName2)) {
-                        if (mutuallyExclusive(methodName1, methodName2)) {
-                            warningMessage(methodName1, methodName2);
+                    numbersWithThisProperty(method, request, negate);
+                } else if(request.length > 3) {
+                   // Class<?>[] parameters = new Class<?>[]{String.class};
+                    List<Method> methodList=new ArrayList<>();
+                    for (int i = 2; i < request.length; i++) {
+                        if (request[i].charAt(0) == '-') {
+                            methodName = "isNot" + request[i].substring(1, 2).toUpperCase() + request[i].substring(2).toLowerCase();
+                            negate = true;
+                        }
+                        else {
+                            methodName = "is" + request[i].substring(0, 1).toUpperCase() + request[i].substring(1).toLowerCase();
+                        }
+                        methodList.add(Main.class.getMethod(methodName, parameters));
+                    }
+                        if (mutuallyExclusive(request)) {
                             continue;
                         } else {
-                            numbersWithTheseProperty(method1, method2, request);
+                            numbersWithTheseProperty(methodList, request);
                         }
                     }
                 }
             }
         }
-    }
 
-    private static boolean checkProperties(String methodName1, String methodName2) {
-        String message = "";
-        boolean property= false;
-        if (!contains(methodName1) && !contains(methodName2)) {
-            message = String.format("The properties [%s, %s] are wrong.%n" +
-                    "Available properties: [EVEN, ODD, BUZZ, DUCK, PALINDROMIC, GAPFUL, SPY, SQUARE, SUNNY]",
-                    methodName1.substring(2).toUpperCase(),methodName2.substring(2).toUpperCase());
-        } else if (!contains(methodName1)) {
-            message = String.format("The property [%s] is wrong.%n" +
-                            "Available properties: [EVEN, ODD, BUZZ, DUCK, PALINDROMIC, GAPFUL, SPY, SQUARE, SUNNY]",
-                    methodName1.substring(2).toUpperCase());
-        } else if (!contains(methodName2)) {
-            message = String.format("The property [%s] is wrong.%n" +
-                            "Available properties: [EVEN, ODD, BUZZ, DUCK, PALINDROMIC, GAPFUL, SPY, SQUARE, SUNNY]",
-                    methodName2.substring(2).toUpperCase());
-        }
-        else {
-            property=true;
-        }
-        System.out.println(message);
-        return property;
-    }
 
-    private static boolean contains(String method) {
-        String property = method.substring(2).toUpperCase();
-        for ( String str : properties) {
-            if ((str.toUpperCase()).equals(property)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void numbersWithTheseProperty(Method method1, Method method2, String[] request) throws InvocationTargetException, IllegalAccessException {
+    private static void numbersWithTheseProperty(List<Method> methodList, String[] request) throws InvocationTargetException, IllegalAccessException {
         int count = 0;
+        //boolean invoke = true;
         long numberIncrement = Long.parseLong(request[0]);
         while (count < Long.parseLong(request[1])) {
-            if ((boolean) method1.invoke(null, String.valueOf(numberIncrement)) &&
-                    (boolean) method2.invoke(null, String.valueOf(numberIncrement))) {
+            boolean invoke = true;
+            for (Method method : methodList) {
+                invoke = invoke && (boolean) method.invoke(null, String.valueOf(numberIncrement));
+            }
+            if (invoke) {
                 printPropertiesNumberOneLine(numberIncrement);
                 count++;
-            }else {
-
             }
             numberIncrement++;
         }
     }
 
-    private static void warningMessage(String method1, String method2) {
-        String warning= String.format("The request contains mutually exclusive properties: [%s, %s]%nThere are no numbers with these properties.",
-                method1.substring(2).toUpperCase(),method2.substring(2).toUpperCase());
-        System.out.println(warning);
-    }
 
-    private static boolean mutuallyExclusive(String method1, String method2) {
-        if (method1.equals("isEven") && method2.equals("isOdd") || method2.equals("isEven") && method1.equals("isOdd")) {
-            return true;
-        } else if (method1.equals("isDuck") && method2.equals("isSpy") || method2.equals("isDuck") && method1.equals("isSpy")) {
-            return true;
-        } else if (method1.equals("isSunny") && method2.equals("isSquare") || method2.equals("isSunny") && method1.equals("isSquare")) {
-            return true;
+    private static boolean mutuallyExclusive(String[] request) {
+        for (int i = 2; i < request.length; i++) {
+            String property1 = request[i].toUpperCase();
+            for (int j = i; j < request.length; j++) {
+                String property2 = request[j].toUpperCase();
+                if (property1.equals(exclusive.get(property2))
+                 || property2.equals(exclusive.get(property1)) ||
+                        property2.equals("-" + property1) ||
+                property1.equals("-" + property2)){
+                    System.out.printf("The request contains mutually exclusive properties: [%s, %s]\n" +
+                                    "There are no numbers with these properties.%n",property1.toUpperCase(), property2.toUpperCase());
+                    return true;
+                }
+            }
         }
+//        for (int j = 0; j < methodList.size(); j++) {
+//        String method1 = methodList.get(j).getName();
+//            for (int i = j; i < methodList.size(); i++) {
+//                String method2 = methodList.get(i).getName();
+//                if (method1.equals(exclusive.get(method2)) || method2.equals(exclusive.get(method1))) {
+//                    System.out.printf("The request contains mutually exclusive properties: [%s, %s]\n" +
+//                                    "There are no numbers with these properties.",
+//                            method1.substring(2).toUpperCase(), method2.substring(2).toUpperCase());
+//                    return true;
+//                }
+//            }
+//        }
         return false;
     }
 
@@ -125,8 +160,8 @@ public class Main {
                 - enter two natural numbers to obtain the properties of the list:
                   * the first parameter represents a starting number;
                   * the second parameters show how many consecutive numbers are to be processed;
-                - two natural numbers and a property to search for;
-                - two natural numbers and two properties to search for;
+                - two natural numbers and a properties to search for;
+                - a property preceded by minus must not be present in numbers;
                 - separate the parameters with one space;
                 - enter 0 to exit.""");
     }
@@ -142,10 +177,13 @@ public class Main {
         System.out.println("         odd: " + isOdd(number));
         System.out.println("      square: " + isSquare(number));
         System.out.println("       sunny: " + isSunny(number));
+        System.out.println("     jumping: " + isJumping(number));
+        System.out.println("       happy: " + isHappy(number));
+        System.out.println("         sad: " + !isHappy(number));
     }
 
     private static void printPropertiesNumberOneLine(long i) {
-        System.out.printf("%s is %s%s%s%s%s%s%s%s%n", i,
+        System.out.printf("%s is %s%s%s%s%s%s%s%s%s%s%n", i,
                 isBuzz(String.valueOf(i)) ? "buzz, " : "",
                 isDuck(String.valueOf(i)) ? "duck, " : "",
                 isPalindromic(String.valueOf(i)) ? "palindromic, " : "",
@@ -153,14 +191,19 @@ public class Main {
                 isSpy(String.valueOf(i)) ? "spy, " : "",
                 isEven(String.valueOf(i)) ? "even, " : "odd, ",
                 isSquare(String.valueOf(i)) ? "square, " : "",
-                isSunny(String.valueOf(i)) ? "sunny, " : "");
+                isSunny(String.valueOf(i)) ? "sunny, " : "",
+                isJumping(String.valueOf(i)) ? "jumping, " : "",
+                isHappy(String.valueOf(i))  ? "happy " : "sad");
     }
 
-    private static void numbersWithThisProperty(Method method, String[] request) throws InvocationTargetException, IllegalAccessException {
+    private static void numbersWithThisProperty(Method method, String[] request, boolean negate) throws InvocationTargetException, IllegalAccessException {
         int count = 0;
         long numberIncrement = Long.parseLong(request[0]);
         while (count < Long.parseLong(request[1])) {
-            if ((boolean) method.invoke(null, String.valueOf(numberIncrement))) {
+            if (negate == false &&  (boolean) method.invoke(null, String.valueOf(numberIncrement))) {
+                printPropertiesNumberOneLine(numberIncrement);
+                count++;
+            } else if (negate == true && !(boolean) method.invoke(null, String.valueOf(numberIncrement))) {
                 printPropertiesNumberOneLine(numberIncrement);
                 count++;
             }
@@ -179,23 +222,67 @@ public class Main {
         } else if (input.length == 2) {
             return isNatural(input[0], 0) && isNatural(input[1], 1);
         } else if (input.length == 3) {
-            return isNatural(input[0], 0) && isNatural(input[1], 1) && isProperty(input[2]);
-        } else if (input.length==4) {
+            boolean valid = true;
+            if (input[2].charAt(0) == '-'){
+                valid = isNatural(input[0], 0) && isNatural(input[1], 1) && isProperty(input[2].substring(1));
+                if (!isProperty(input[2].substring(1))) {
+                    System.out.printf("The property [" + input[2].toUpperCase() + "] is wrong.\n" +
+                            "Available properties:\n" + props + "%n");
+                }
+                return valid;
+            }
+            valid = isNatural(input[0], 0) && isNatural(input[1], 1) && isProperty(input[2]);
+            if (!isProperty(input[2])) {
+                System.out.printf("The property [" + input[2].toUpperCase() + "] is wrong.\n" +
+                        "Available properties:\n" + props + "%n");
+            }
+            return valid;
+        } else if (input.length > 3) {
+            List<String> inValid = new ArrayList<>();   // to store invalid properties
+            boolean isValidInput= true;
+            if (!isNatural(input[0], 0))
+                return false;
+            if (!isNatural(input[1], 1))
+                return false;
+            for (int i = 2; i < input.length; i++) {
+                inValid.add(input[i].toUpperCase());
+                if (input[i].charAt(0) == '-'){
+                    if (isProperty(input[i].substring(1))) {
+                        inValid.remove(input[i].toUpperCase());
+                    }
+                    isValidInput &= isProperty(input[i].substring(1));
+                }
+                else {
+                    if (isProperty(input[i].substring(0))) {
+                        inValid.remove(input[i].toUpperCase());
+                    }
+                    isValidInput &= isProperty(input[i]);
+                }
+            }
+            if (isValidInput) {
+                return true;
+            }
+            if (inValid.size() == 1) {
+                System.out.printf("The property " + inValid + " is wrong.%n" +
+                        "Available properties: %n" + props + "%n");
+                return false;
+            }
+            if (inValid.size() > 1) {
 
-            return isNatural(input[0], 0) && isNatural(input[1], 1) && checkProperties(
-                    "is" + input[2].substring(0,1).toLowerCase() + input[2].substring(1),
-                    "is" + input[3].substring(0,1).toLowerCase() + input[3].substring(1));
+                System.out.printf("The properties " + inValid + " are wrong.\n" +
+                        "Available properties:\n" + props + "%n");
+            }
+            return isValidInput;
         }
         return false;
     }
-
     private static boolean isProperty(String property) {
-        property = property.toLowerCase();
-        boolean isProperty = property.equals("even") || property.equals("odd") || property.equals("buzz") || property.equals("duck") || property.equals("palindromic") || property.equals("gapful") || property.equals("spy") ||
-                property.equals("sunny") || property.equals("square") ;
-        if (!isProperty) {
-            System.out.println("The property [" + property + "] is wrong.\n" +
-                               "Available properties: [BUZZ, DUCK, PALINDROMIC, GAPFUL, SPY, EVEN, ODD, SUNNY, SQUARE]");
+        property = property.toUpperCase();
+        boolean isProperty = false;
+        for (String prop : properties) {
+            if ( prop.equals(property)) {
+                return true;
+            }
         }
         return isProperty;
     }
@@ -207,6 +294,18 @@ public class Main {
         }
         return isNatural;
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     public static boolean isEven(String number) {
         return Long.parseLong(number) % 2 == 0;
@@ -252,5 +351,94 @@ public class Main {
         number= String.valueOf((Long.valueOf(number)+1));
         return isSquare(number);
     }
+
+    public static boolean isJumping(String number) {
+        char[] charArray = number.toCharArray();
+        char temp = charArray[0];
+        for (int i = 1; i < charArray.length; i++ ) {
+            if (Math.abs(charArray[i] - temp) != 1) {
+                return false;
+            }
+            else {
+                temp = charArray[i];
+            }
+        }
+        return true;
+    }
+
+    public static boolean isHappy(String number) {
+        long num = Long.valueOf(number);
+        char[] charArray = number.toCharArray();
+        if (num == 1) {
+            return true;
+        }
+        while (num / 10 > 0 ) {
+            long sum = 0;
+            for (char c : charArray) {
+                sum += (Long.valueOf(c - '0')) * (Long.valueOf(c - '0'));
+            }
+            if (sum == 1 ) {
+                return true;
+            }
+            else {
+                num = sum;
+                number = String.valueOf(num);
+                charArray = number.toCharArray();
+            }
+        }
+        return num == 1 || num == 7;
+    }
+
+    public static boolean isNotEven(String number) {
+        return !isEven(number);
+    }
+
+    public static boolean isNotOdd(String number) {
+        return !isOdd(number);
+    }
+    public static boolean isNotBuzz(String number) {
+        return !isBuzz(number);
+    }
+
+    public static boolean isNotDuck(String number) {
+        return !isDuck(number);
+    }
+
+    public static boolean isNotPalindromic(String number) {
+        return !isPalindromic(number);
+    }
+
+    public static boolean isNotGapful(String number) {
+        return !isGapful(number);
+    }
+
+    public static boolean isNotSpy(String number) {
+        return !isSpy(number);
+    }
+
+    public static boolean isNotSquare(String number) {
+        return !isSquare(number);
+    }
+
+    public static boolean isNotSunny(String  number) {
+        return !isSunny(number);
+    }
+
+    public static boolean isNotJumping(String number) {
+        return !isJumping(number);
+    }
+
+    public static boolean isNotHappy(String number) {
+        return !isHappy(number);
+    }
+
+    public static boolean isSad(String number) {
+        return !isHappy(number);
+    }
+
+    public static boolean isNotSad(String number) {
+        return !isSad(number);
+    }
+
 
 }
