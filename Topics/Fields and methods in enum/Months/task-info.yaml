@@ -1,0 +1,32 @@
+type: choice
+is_multiple_choice: true
+options:
+- text: <b>Month dec1 = Month.DEC; Month dec2 = Month.DEC;</b> The statement <b>dec1
+    == dec2</b> always returns <b>true</b>.
+- text: The code <b>Month.values()</b> returns an array of all declared constants
+- text: <b>Month aug = Month.AUG;</b> The variable <b>aug</b> has a primitive type.
+- text: The code <b>Month.JAN.getNumber()</b> returns 0
+- text: The code <b>Month.valueOf("JUN")</b> returns <b>JUN</b>.
+files:
+- name: src/Task.java
+  visible: true
+  text: |
+    // You can experiment here, it won’t be checked
+
+    public class Task {
+      public static void main(String[] args) {
+        // put your code here
+      }
+    }
+  learner_created: false
+feedback_link: https://hyperskill.org/learn/step/11526#comment
+status: Solved
+feedback:
+  message: <html>Correct solution</html>
+  time: "Mon, 20 Mar 2023 17:47:07 UTC"
+record: -1
+selected_options:
+- 0
+- 1
+- 4
+local_check: false
